@@ -1,0 +1,204 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  VpcCIDR:
+    Type: String
+    Description: Provide the CIDR for the VPC
+    Default: 10.0.0.0/16
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: "seanVPC"
+
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "seanIGW"
+
+  AttachGateway:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Select [1, !Cidr [!Ref VpcCIDR, 5, 8]]
+      AvailabilityZone: !Select
+                        - 0
+                        - !GetAZs
+                          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PublicSubnet1", !Select [0, !GetAZs ""], !Select [1, !Cidr [!Ref VpcCIDR, 5, 8]]]]
+
+  PublicSubnet2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Select [2, !Cidr [!Ref VpcCIDR, 5, 8]]
+      AvailabilityZone: !Select
+                        - 1
+                        - !GetAZs
+                          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PublicSubnet2", !Select [1, !GetAZs ""], !Select [2, !Cidr [!Ref VpcCIDR, 5, 8]]]]
+
+  PrivateSubnet1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [3, !Cidr [!Ref VpcCIDR, 5, 8]]
+      AvailabilityZone: !Select
+                        - 0
+                        - !GetAZs
+                          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PrivateSubnet1", !Select [0, !GetAZs ""], !Select [3, !Cidr [!Ref VpcCIDR, 5, 8]]]]
+
+  PrivateSubnet2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [4, !Cidr [!Ref VpcCIDR, 5, 8]]
+      AvailabilityZone: !Select
+                        - 1
+                        - !GetAZs
+                          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PrivateSubnet2", !Select [1, !GetAZs ""], !Select [4, !Cidr [!Ref VpcCIDR, 5, 8]]]]
+
+  PrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PrivateRouteTable"]]
+
+  PublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PublicRouteTable"]]
+
+  PublicRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  PublicSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: "Allow ICMP, HTTP, SSH"
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          IpProtocol: 'tcp'
+          FromPort: 22
+          ToPort: 22
+        - CidrIp: '0.0.0.0/0'
+          IpProtocol: 'tcp'
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: '0.0.0.0/0'
+          IpProtocol: 'icmp'
+          FromPort: -1
+          ToPort: -1
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref VPC, "PublicSecurityGroup"]]
+
+Outputs:
+  VpcId:
+    Value: !GetAtt VPC.VpcId
+    Description: "The ID of the VPC"
+    Export:
+      Name: !Sub "${AWS::StackName}-VpcId" #This will allow to reference the ID of the VPC in other stacks in the future
+
+  PublicSubnet1ID:
+    Value: !Ref PublicSubnet1
+    Description: "The ID of the first public subnet"
+    Export:
+      Name: "PublicSubnet1" #This will allow to reference the ID of the public subnet in other stacks in the future
+  
+  PublicSubnet2ID:
+    Value: !Ref PublicSubnet2
+    Description: "The ID of the second public subnet"
+    Export:
+      Name: "PublicSubnet2"
+  
+  PrivateSubnet1ID:
+    Value: !Ref PrivateSubnet1
+    Description: "The ID of the first private subnet"
+    Export:
+      Name: "PrivateSubnet1" #This will allow to reference the ID of the private subnet in other stacks in the future
+  
+  PrivateSubnet2ID:
+    Value: !Ref PrivateSubnet2
+    Description: "The ID of the second private subnet"
+    Export:
+      Name: "PrivateSubnet2"
+
+  SecurityGroup:
+    Value: !GetAtt PublicSecurityGroup.GroupId
+    Description: "The ID of the Security Group"
+    Export:
+      Name: "SecurityGroup-SSH-HTTP-ICMP-Access"
+
+  AvilabilityZones1:
+    Value: !Select [0, !GetAZs ""]
+    Description: "The first availability zones of the VPC"
+    Export:
+      Name: "VPC-AvailabilityZone1"
+
+  AvilabilityZones2:
+    Value: !Select [1, !GetAZs ""]
+    Description: "The second availability zones of the VPC"
+    Export:
+      Name: "VPC-AvailabilityZone2"

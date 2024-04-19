@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  
+  OS1:
+    Type: String
+    Description: Choose Operation System For Instance 1
+    AllowedValues:
+      - Windows
+      - AmazonLinux
+      - Ubuntu
+      - RedHat
+    Default: AmazonLinux
+
+  OS2:
+    Type: String
+    Description: Choose Operation System For Instance 2
+    AllowedValues:
+      - Windows
+      - AmazonLinux
+      - Ubuntu
+      - RedHat
+    Default: Windows
+
+Mappings:
+  OSRegionMapping:
+    Windows: 
+      AMI: ami-03cd80cfebcbb4481
+    AmazonLinux: 
+      AMI: ami-051f8a213df8bc089
+    Ubuntu: 
+      AMI: ami-080e1f13689e07408
+    RedHat: 
+      AMI: ami-0fe630eb857a6ec83
+
+#Conditions:
+ # IsLinux: !Equals [!Ref OS1, Amazon - Linux]
+  #IsWindows: !Equals [!Ref OS1, Windows]
+  #IsRedHat: !Equals [!Ref OS1, Red-Hat]
+  #IsUbuntu: !Equals [!Ref OS1, Ubuntu]
+
+Resources:
+  MyInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      AvailabilityZone: !ImportValue
+        'VPC-AvailabilityZone1'
+      ImageId: !FindInMap [OSRegionMapping, !Ref OS1, AMI]
+      InstanceType: t2.micro
+      SubnetId: !ImportValue 
+        'PublicSubnet1'
+      SecurityGroupIds:
+        - !ImportValue 'AllowAllSecurityGroup'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref OS1, "Instance"]]
+
+  MyInstance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !FindInMap [OSRegionMapping, !Ref OS2, AMI]
+      InstanceType: t2.micro
+      AvailabilityZone: !ImportValue
+        'VPC-AvailabilityZone2'
+      SubnetId: !ImportValue
+        'PublicSubnet2'
+      SecurityGroupIds:
+        - !ImportValue 'AllowAllSecurityGroup'
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref OS2, "Instance2"]]

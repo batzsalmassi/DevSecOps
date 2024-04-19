@@ -1,0 +1,131 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+      "User1Name": {
+        "Type": "String",
+        "Description": "Enter the name for User 1. It must only contain uppercase and lowercase letters (A-Z, a-z).",
+        "AllowedPattern": "[A-Za-z]+"
+      },
+      "User2Name": {
+        "Type": "String",
+        "Description": "Enter the name for User 2. It must only contain numbers.",
+        "AllowedPattern": "[0-9]+"
+      },
+      "User3Name": {
+        "Type": "String",
+        "Description": "Enter the name for User 3. It should contain a valid email address.",
+        "AllowedPattern": "^[a-zA-Z0-9_.+-]+@devsecops\\.bar$"
+      },
+      "Group1Name": {
+        "Type": "String",
+        "Description": "Enter the name for EC2 Admin Group."
+      },
+      "Group2Name": {
+        "Type": "String",
+        "Description": "Enter the name for EC2 Support Group."
+      },
+      "Group3Name": {
+        "Type": "String",
+        "Description": "Enter the name for S3 Support Group."
+      },
+      "User1Password": {
+        "Type": "String",
+        "Description": "Enter the Password for User 1. It must contain 1 Capital Letter, 1 Small Letter, 1 Number, 1 Special Character and minimun 8 characters.",
+        "MinLength": "8",
+        "AllowedPattern": "(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}",
+        "NoEcho": "true"
+      }
+    },
+    "Resources": {
+      "EC2Admins": {
+        "Type": "AWS::IAM::Group",
+        "Properties": {
+          "GroupName": { "Ref": "Group1Name" },
+          "Policies": [
+            {
+              "PolicyName": "EC2AdminPolicy",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "ec2:StartInstances",
+                      "ec2:StopInstances",
+                      "ec2:Describe*"
+                    ],
+                    "Resource": "*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "EC2Support": {
+        "Type": "AWS::IAM::Group",
+        "Properties": {
+          "GroupName": { "Ref": "Group2Name" },
+          "Policies": [
+            {
+              "PolicyName": "EC2SupportPolicy",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "ec2:Describe*"
+                    ],
+                    "Resource": "*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "S3Support": {
+        "Type": "AWS::IAM::Group",
+        "Properties": {
+          "GroupName": { "Ref": "Group3Name" },
+          "ManagedPolicyArns": [
+            "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+          ]
+        }
+      },
+      "User1": {
+        "Type": "AWS::IAM::User",
+        "Properties": {
+          "UserName": { "Ref": "User1Name" },
+          "Groups": [ { "Ref": "S3Support" } ],
+          "LoginProfile": {
+            "Password": { "Ref": "User1Password" }
+          }
+        }
+      },
+      "User2": {
+        "Type": "AWS::IAM::User",
+        "Properties": {
+          "UserName": { "Ref": "User2Name" },
+          "Groups": [ { "Ref": "EC2Support" } ],
+          "LoginProfile": {
+            "Password": "TempPass@123",
+            "PasswordResetRequired": true
+          }
+        }
+      },
+      "User3": {
+        "Type": "AWS::IAM::User",
+        "Properties": {
+          "UserName": { "Ref": "User3Name" },
+          "Groups": [ { "Ref": "EC2Admins" } ],
+          "LoginProfile": {
+            "Password": "TempPass@123",
+            "PasswordResetRequired": true
+          }
+        }
+      }
+    }
+  }
+  

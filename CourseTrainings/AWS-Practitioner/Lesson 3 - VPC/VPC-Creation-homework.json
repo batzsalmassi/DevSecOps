@@ -1,0 +1,254 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+      "VpcCIDR": {
+        "Type": "String",
+        "Description": "Provide the CIDR for the VPC",
+        "Default": "10.0.0.0/16"
+      }
+    },
+    "Resources": {
+      "VPC": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "VpcCIDR" },
+          "EnableDnsHostnames": true,
+          "EnableDnsSupport": true,
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "seanVPC"
+            }
+          ]
+        }
+      },
+      "InternetGateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "seanIGW"
+            }
+          ]
+        }
+      },
+      "AttachGateway": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "InternetGatewayId": { "Ref": "InternetGateway" }
+        }
+      },
+      "PublicSubnet1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Fn::Select": [1, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] },
+          "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PublicSubnet1", { "Fn::Select": [0, { "Fn::GetAZs": "" }] }, { "Fn::Select": [1, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] }] ]}
+            }
+          ]
+        }
+      },
+      "PublicSubnet2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Fn::Select": [2, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] },
+          "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PublicSubnet2", { "Fn::Select": [1, { "Fn::GetAZs": "" }] }, { "Fn::Select": [2, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] }] ]}
+            }
+          ]
+        }
+      },
+      "PrivateSubnet1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "CidrBlock": { "Fn::Select": [3, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] },
+          "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PrivateSubnet1", { "Fn::Select": [0, { "Fn::GetAZs": "" }] }, { "Fn::Select": [3, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] }] ]}
+            }
+          ]
+        }
+      },
+      "PrivateSubnet2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "CidrBlock": { "Fn::Select": [4, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] },
+          "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PrivateSubnet2", { "Fn::Select": [1, { "Fn::GetAZs": "" }] }, { "Fn::Select": [4, { "Fn::Cidr": [{ "Ref": "VpcCIDR" }, 5, 8] }] }] ]}
+            }
+          ]
+        }
+      },
+      "PrivateRouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PrivateRouteTable"]] }
+            }
+          ]
+        }
+      },
+      "PublicRouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PublicRouteTable"]] }
+            }
+          ]
+        }
+      },
+      "PublicRoute": {
+        "Type": "AWS::EC2::Route",
+        "DependsOn": "AttachGateway",
+        "Properties": {
+          "RouteTableId": { "Ref": "PublicRouteTable" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "InternetGateway" }
+        }
+      },
+      "PublicSubnet1RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PublicSubnet1" },
+          "RouteTableId": { "Ref": "PublicRouteTable" }
+        }
+      },
+      "PublicSubnet2RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PublicSubnet2" },
+          "RouteTableId": { "Ref": "PublicRouteTable" }
+        }
+      },
+      "PrivateSubnet1RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PrivateSubnet1" },
+          "RouteTableId": { "Ref": "PrivateRouteTable" }
+        }
+      },
+      "PrivateSubnet2RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PrivateSubnet2" },
+          "RouteTableId": { "Ref": "PrivateRouteTable" }
+        }
+      },
+      "PublicSecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "VpcId": { "Ref": "VPC" },
+          "GroupDescription": "Allow ICMP, HTTP, SSH",
+          "SecurityGroupIngress": [
+            {
+              "CidrIp": "0.0.0.0/0",
+              "IpProtocol": "tcp",
+              "FromPort": 22,
+              "ToPort": 22
+            },
+            {
+              "CidrIp": "0.0.0.0/0",
+              "IpProtocol": "tcp",
+              "FromPort": 80,
+              "ToPort": 80
+            },
+            {
+              "CidrIp": "0.0.0.0/0",
+              "IpProtocol": "icmp",
+              "FromPort": -1,
+              "ToPort": -1
+            }
+          ],
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Fn::Join": ["-", [{ "Ref": "VPC" }, "PublicSecurityGroup"]] }
+            }
+          ]
+        }
+      }
+    },
+    "Outputs": {
+      "VpcId": {
+        "Value": { "Fn::GetAtt": ["VPC", "VpcId"] },
+        "Description": "The ID of the VPC",
+        "Export": {
+          "Name": { "Fn::Sub": "${AWS::StackName}-VpcId-json" }
+        }
+      },
+      "PublicSubnet1ID": {
+        "Value": { "Ref": "PublicSubnet1" },
+        "Description": "The ID of the first public subnet",
+        "Export": {
+          "Name": "PublicSubnet1-json"
+        }
+      },
+      "PublicSubnet2ID": {
+        "Value": { "Ref": "PublicSubnet2" },
+        "Description": "The ID of the second public subnet",
+        "Export": {
+          "Name": "PublicSubnet2-json"
+        }
+      },
+      "PrivateSubnet1ID": {
+        "Value": { "Ref": "PrivateSubnet1" },
+        "Description": "The ID of the first private subnet",
+        "Export": {
+          "Name": "PrivateSubnet1-json"
+        }
+      },
+      "PrivateSubnet2ID": {
+        "Value": { "Ref": "PrivateSubnet2" },
+        "Description": "The ID of the second private subnet",
+        "Export": {
+          "Name": "PrivateSubnet2-json"
+        }
+      },
+      "SecurityGroup": {
+        "Value": { "Fn::GetAtt": ["PublicSecurityGroup", "GroupId"] },
+        "Description": "The ID of the Security Group",
+        "Export": {
+          "Name": "SecurityGroup-SSH-HTTP-ICMP-Access-json"
+        }
+      },
+      "AvilabilityZones1": {
+        "Value": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "Description": "The first availability zones of the VPC",
+        "Export": {
+          "Name": "VPC-AvailabilityZone1-json"
+        }
+      },
+      "AvilabilityZones2": {
+        "Value": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "Description": "The second availability zones of the VPC",
+        "Export": {
+          "Name": "VPC-AvailabilityZone2-json"
+        }
+      }
+    }
+  }  

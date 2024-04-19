@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters: 
+  OS: 
+    Type: String
+    AllowedValues: 
+      - Amazon-Linux
+      - Ubuntu
+      - Red-Hat
+      - Windows
+    Description: Choose the OS
+
+Mappings:
+  OSMap:
+    Amazon-Linux:
+      ImageId: ami-079db87dc4c10ac91
+    Ubuntu: 
+      ImageId: ami-0c7217cdde317cfec
+    Red-Hat:
+      ImageId: ami-023c11a32b0207432
+    Windows:
+      ImageId: ami-06938c7701be658b4
+
+Conditions:
+     IsWindows: !Equals [!Ref OS, Windows]
+     NotWindows: !Not [!Equals [!Ref OS, Windows]]
+     IsUbuntu: !Equals [!Ref OS, Ubuntu]
+     IsRedHat: !Equals [!Ref OS, Red-Hat]
+     IsLinuxNotAmazon: !Or [Condition: IsUbuntu, Condition: IsRedHat]
+
+Resources:
+  ImportedInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !ImportValue AvailZone1
+      ImageId: ami-0915bcb5fa77e4892
+      InstanceType: t2.micro
+      SubnetId: !ImportValue PublicSubnet1
+      SecurityGroupIds:
+        - !ImportValue Allow-All-SG
+      Tags:
+        - Key: Name
+          Value: Imported-Instance
+
+  MappingInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [OSMap, !Ref OS, ImageId]
+      InstanceType: !If [NotWindows, t2.small, t2.micro]
+      SubnetId: !ImportValue PublicSubnet2
+      SecurityGroupIds:
+        - !ImportValue Allow-All-SG
+      Tags:
+        - Key: Name
+          Value: !Sub "${OS}-Mapping-Instance"
+
+  WindowsEBS:
+    Type: AWS::EC2::Volume
+    Condition: IsWindows
+    Properties:
+      AvailabilityZone: !GetAtt MappingInstance.AvailabilityZone # Required
+      Size: 10
+      Tags:
+        - Key: Name
+          Value: Equals Condition Volume
+      
+  WindowsEBSMountPoint:
+      Type: AWS::EC2::VolumeAttachment
+      Condition: IsWindows
+      Properties:
+        InstanceId: !Ref MappingInstance # Required
+        VolumeId: !Ref WindowsEBS # Required
+        Device: /dev/sdh
+
+  LinuxEIP:
+    Type: AWS::EC2::EIP
+    Condition: IsLinuxNotAmazon
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref MappingInstance
+      Tags:
+           - Key: Name
+             Value: Or Condition EIP
+

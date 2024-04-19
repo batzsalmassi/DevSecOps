@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  User1Name:
+    Type: String
+    Description: "Enter the name for User 1. It must only contain uppercase and lowercase letters (A-Z, a-z)."
+    AllowedPattern: '[A-Za-z]+'
+
+  User2Name:
+    Type: String
+    Description: "Enter the name for User 2. It must only contain numbers."
+    AllowedPattern: '[0-9]+'
+
+  User3Name:
+    Type: String
+    Description: "Enter the name for User 3. It must be a valid email address under the @devsecops.bar domain."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@devsecops\.bar$'
+
+  User4Name:
+    Type: String
+    Description: "Enter the name for User 4. It must start with 'bold-' and can include any character afterward."
+    AllowedPattern: 'bold-.+'
+
+  User5Name:
+    Type: String
+    Description: "Select a predefined name for User 5."
+    AllowedValues:
+      - "Bold"
+      - "bOld"
+      - "boLd"
+      - "bolD"
+
+  User6Password:
+    Type: String
+    Description: "Enter a strongPassword for the Admin user. Must be at least 8 characters long,must include at least three of the following mix of character types: uppercase letters (A-Z), lowercase letters (a-z), numbers (0-9), and symbols ! @ # $ % ^ & * ( ) _ + - (hyphen) = [ ] { } | '."
+    NoEcho: true
+  
+  GroupName:
+    Type: String
+    Description: "Enter the name for the admin group. It must only contain uppercase and lowercase letters (A-Z, a-z)."
+    AllowedPattern: '[A-Za-z]+'
+
+Resources:
+  EC2AdminsGroup:
+    Type: "AWS::IAM::Group"
+    Properties: 
+      GroupName: "EC2AdminsGroup"
+      Policies: 
+        - PolicyName: "EC2AdminPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "ec2:*"
+                Resource: "*"
+
+  S3BucketAdminsGroup:
+    Type: "AWS::IAM::Group"
+    Properties: 
+      GroupName: "S3BucketAdminsGroup"
+      Policies: 
+        - PolicyName: "S3FullAccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource: "*"
+
+  EC2UsersGroup:
+    Type: "AWS::IAM::Group"
+    Properties: 
+      GroupName: "EC2UsersGroup"
+      Policies: 
+        - PolicyName: "EC2ReadOnlyPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ec2:Describe*"
+                  - "ec2:Get*"
+                Resource: "*"
+
+  S3UsersGroup:
+    Type: "AWS::IAM::Group"
+    Properties: 
+      GroupName: "S3UsersGroup"
+      Policies: 
+        - PolicyName: "S3ReadOnlyPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "s3:Get*"
+                Resource: "*"
+
+  CFAdminGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Ref GroupName
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  User1:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: !Ref User1Name
+      Groups: 
+        - !Ref EC2UsersGroup
+      LoginProfile:
+        Password: "TempPass@123"  # Hardcoded Temporerly Password
+        PasswordResetRequired: true
+
+  User2:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: !Ref User2Name
+      Groups: 
+        - !Ref EC2AdminsGroup
+      LoginProfile:
+        Password: "TempPass@123"  # Hardcoded Temporerly Password
+        PasswordResetRequired: true
+
+  User3:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: !Ref User3Name
+      Groups: 
+        - !Ref S3UsersGroup
+      LoginProfile:
+        Password: "TempPass@123"  # Hardcoded Temporerly Password
+        PasswordResetRequired: true
+
+  User4:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: !Ref User4Name
+      Groups: 
+        - !Ref S3BucketAdminsGroup
+      LoginProfile:
+        Password: "TempPass@123"  # Hardcoded Temporerly Password
+        PasswordResetRequired: true
+
+  User5:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: !Ref User5Name
+      Groups: 
+        - !Ref EC2UsersGroup
+      LoginProfile:
+        Password: "TempPass@123"  # Hardcoded Temporerly Password
+        PasswordResetRequired: true
+
+  User6:
+    Type: "AWS::IAM::User"
+    Properties: 
+      UserName: "Admin"  # Hardcoded username
+      Groups: 
+        - !Ref CFAdminGroup
+      LoginProfile:
+        Password: !Ref User6Password
+        PasswordResetRequired: true

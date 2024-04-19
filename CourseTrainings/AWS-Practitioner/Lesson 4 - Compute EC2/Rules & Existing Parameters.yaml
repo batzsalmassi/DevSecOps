@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  VPCId:
+      Type: AWS::EC2::VPC::Id
+      Description: Choose the VPC for the instace 
+
+  SubnetId:
+      Type: AWS::EC2::Subnet::Id
+      Description: CHoose the Subnet for the instace 
+  
+  KeyName: 
+      Type: AWS::EC2::KeyPair::KeyName
+      Description: Choose the key-pair for the instace
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: List of security group IDs for the instance
+  
+  Environment:
+    Type: String
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Prod
+
+
+Rules:
+    ProdInstanceSetUp:
+        RuleCondition: !Equals 
+            - !Ref Environment
+            - Prod
+        Assertions:
+            - Assert:
+                !Equals [Prod, !Ref KeyName]
+              AssertDescription: 'For a production environment, the key-pair must be Prod.'
+            
+    DevInstanceSetUp:
+        RuleCondition: !Equals
+            - !Ref Environment
+            - Dev
+        Assertions:
+            - Assert:
+                Fn::Contains:
+                - - Dev
+                  - Bold
+                - !Ref KeyName  # Reference the string parameter directly
+              AssertDescription: 'For a development environment, the key-pair must be Dev or Bold'
+
+            # Assert with Or
+                        # - Assert:
+                        #     'Fn::Or':
+                        #       - !Equals [!Ref InstanceType, t2.nano]
+                        #       - !Equals [!Ref InstanceType, t2.micro]
+                        
+Resources:
+    RuleInstance:
+      Type: AWS::EC2::Instance
+      Properties:
+        ImageId: ami-079db87dc4c10ac91
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        SecurityGroupIds: 
+          - !Ref SecurityGroup
+        SubnetId: !Ref SubnetId
+        Tags:
+           - Key: Name
+             Value: Rule Instace
