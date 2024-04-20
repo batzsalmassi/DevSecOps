@@ -20,7 +20,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: 's3:*'
+                Action: '*'
                 Resource: '*'
 
 #--------------------Create a lambda function
@@ -28,11 +28,16 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       Role: !GetAtt lambdaRole.Arn
-      Runtime: python3.11
-      Handler: lambda_function.lambda_handler
+      Runtime: nodejs20.x
+      Handler: lambda.lambda_handler
       Code:
-        S3Bucket: seancflambda
+        S3Bucket: testmyseanvbu
         S3Key: function.zip
       Tags:
         - Key: Name
           Value: !Join ["-", [!Ref "AWS::StackName", "lambda-function"]]
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue 'AllowAllSecurityGroup'
+        SubnetIds: 
+          - !ImportValue 'PublicSubnet2'
