@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: '2010-09-09'
+#---------------------- Inputs of the data for the creation of all the other resources. ----------------------
+Parameters:
+  User1:
+    Type: String
+    Description: "The name of the S3 Admin user" 
+    MinLength: 1
+    AllowedPattern: "[a-zA-Z0-9]+"
+#------------------------------- Hard Password for the S3 Admin user without the need for change after the first login --------------
+  User1Pass:
+    Type: String
+    Description: "The password for the S3 Admin user"
+    MinLength: 10
+    AllowedPattern: "^(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]+$"
+    NoEcho: true
+
+  User2:
+    Type: String
+    Description: "The name of the EC2 Admin user"
+    MinLength: 1
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  #------------------------------- Simple Password for the EC2 Admin user That will need to be change after first login --------------
+  User2Pass:
+    Type: String
+    Description: "Enter a password that must be changed after the first login. It should be at least 8 characters long, include uppercase and lowercase letters, numbers, and special characters."
+    MinLength: 8
+    AllowedPattern: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$
+    NoEcho: true
+
+  User3:
+    Type: String
+    Description: "Enter the name for User 3. It should contain a valid email address within the @devsecops.bar domain."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@devsecops\.bar$'
+    MinLength: 1
+
+  Group1:
+    Type: String
+    Description: "The name of the S3 Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  Group2:
+    Type: String
+    Description: "The name of the EC2 Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  Group3:
+    Type: String
+    Description: "The name of the Global Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+Resources:
+  #---------------------- Creation of the S3 Admins Group ----------------------
+  S3AdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group1
+      Policies:
+        - PolicyName: S3AdminPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+
+  #---------------------- Creation of the EC2 Admins Group ----------------------
+  EC2AdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group2
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEC2FullAccess'
+
+  #---------------------- Creation of the Global Admins Group ----------------------
+  GlobalAdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group3
+      Policies:
+        - PolicyName: GlobalAdminPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+
+  #---------------------- Creation of the S3 Admin User ----------------------
+  S3AdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User1
+      Groups:
+        - !Ref S3AdminsGroup
+      LoginProfile:
+        Password: !Ref User1Pass
+        PasswordResetRequired: false
+
+  #---------------------- Creation of the EC2 Admin User ----------------------
+  EC2AdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User2
+      Groups:
+        - !Ref EC2AdminsGroup
+      LoginProfile:
+        Password: !Ref User2Pass
+        PasswordResetRequired: false
+    
+  #---------------------- Creation of the Global Admin User ----------------------
+  GlobalAdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User3
+      Groups:
+        - !Ref GlobalAdminsGroup
+      LoginProfile:
+        Password: 'TempPa$$w0rdDevSecOps'
+        PasswordResetRequired: true
+
+Outputs:
+  #---------------------- Outputs of the data for the creation of all the other resources. ----------------------
+  S3AdminUser:
+    Description: "The name of the S3 Admin user"
+    Value: !Ref User1
+
+  EC2AdminUser:
+    Description: "The name of the EC2 Admin user"
+    Value: !Ref User2
+
+  GlobalAdminUser:
+    Description: "The name of the Global Admin user"
+    Value: !Ref User3
+
+  S3AdminsGroup:
+    Description: "The name of the S3 Admins Group"
+    Value: !Ref Group1
+
+  EC2AdminsGroup:
+    Description: "The name of the EC2 Admins Group"
+    Value: !Ref Group2
+
+  GlobalAdminsGroup:
+    Description: "The name of the Global Admins Group"
+    Value: !Ref Group3
