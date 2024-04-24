@@ -22,7 +22,6 @@ Resources:
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
-      VpcId: !Ref VPC
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-IGW
@@ -108,7 +107,7 @@ Resources:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
-      Tage:
+      Tags:
         - Key: Name
           Value: !Join ["-", [!Ref VPC, "PrivateRouteTable"]]
   
@@ -238,11 +237,21 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-PublicSecurityGroup
 
+  #-----------------Creating the Endpoint for S3-------------------
+  S3Endpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Gateway
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref VPC
+      RouteTableIds: 
+        - !Ref PrivateRouteTable
+
 #--------------------Outputs-------------------
 Outputs:
   VPCName:
     Description: Name Of the VPC
-    Value: !Ref VPC
+    Value: !GetAtt VPC.Tags.Name
     Export:
       Name: VPCName
 
