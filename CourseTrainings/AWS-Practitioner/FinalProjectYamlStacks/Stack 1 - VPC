@@ -249,60 +249,54 @@ Resources:
 
 #--------------------Outputs-------------------
 Outputs:
-  VPCName:
-    Description: Name Of the VPC
-    Value: !GetAtt VPC.Tags.Name
-    Export:
-      Name: VPCName
-
-  VPCId:
+  VPCId: #output the VPC ID
     Description: Id of the VPC
     Value: !GetAtt VPC.VpcId
     Export:
       Name: VPCId
 
-  PublicSubnet1:
+  PublicSubnet1: #output the public subnet 1
     Description: Public Subnet 1
     Value: !Ref PublicSubnet1
     Export:
       Name: PublicSubnet1
 
-  PublicSubnet2:
+  PublicSubnet2: #output the public subnet 2
     Description: Public Subnet 2
     Value: !Ref PublicSubnet2
     Export:
       Name: PublicSubnet2
 
-  PrivateSubnet1:
+  PrivateSubnet1: #output the private subnet 1
     Description: Private Subnet 1
     Value: !Ref PrivateSubnet1
     Export:
       Name: PrivateSubnet1
 
-  PrivateSubnet2:
+  PrivateSubnet2: #output the private subnet 2
     Description: Private Subnet 2
     Value: !Ref PrivateSubnet2
     Export:
       Name: PrivateSubnet2
 
-  PublicSecurityGroup:
+  PublicSecurityGroup: #output the public security group
     Description: Public Security Group
     Value: !GetAtt PublicSecurityGroup.GroupId
     Export:
       Name: PublicSecurityGroup
 
-  NetworkAcl:
+  NetworkAcl: #output the public network acl
     Description: Public Network ACL
     Value: !Ref PublicMyNetworkAcl
     Export:
       Name: Nacl-Allow-All
 
-  AvailabilityZone1:
+  AvailabilityZone1: #output the availability zone 1
     Description: Availability Zone 1
     Value: !Select [0, !GetAZs ""]
     Export:
       Name: AvailabilityZone1
 
-  AvailabilityZone2:
+  AvailabilityZone2: #output the availability zone 2
     Description: Availability Zone 2
     Value: !Select [1, !GetAZs ""]
