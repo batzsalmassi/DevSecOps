@@ -95,6 +95,8 @@ Resources:
   EC2InstancePublicSucbet2:
     Type: AWS::EC2::Instance
     Properties:
+      IamInstanceProfile: !ImportValue
+        'PublicInstanceProfile1'
       ImageId: !FindInMap [OSAMI, !Ref OS2, AMI]
       InstanceType: t2.micro
       SubnetId: !ImportValue
@@ -104,6 +106,38 @@ Resources:
       AvailabilityZone: !ImportValue
         'AvailabilityZone2'
       KeyName: "SeanKeyPair"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          amazon-linux-extras install -y awscli
+          systemctl start docker
+          systemctl enable docker
+          sudo usermod -aG docker ec2-user
+          # Set up directory structure
+          mkdir -p /home/ec2-user/app/html/css
+          # Download files into the proper directory
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/webpage2/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/webpage2/css/styles.css /home/ec2-user/app/html/css
+          # Create Dockerfile
+          cat <<'EOF' > /home/ec2-user/app/Dockerfile
+          FROM public.ecr.aws/amazonlinux/amazonlinux:latest
+          RUN yum update -y && yum install -y httpd
+          Run mkdir -p /var/www/html/css
+          COPY html/index.html /var/www/html/index.html
+          COPY html/css/styles.css /var/www/html/css/styles.css
+          RUN echo 'mkdir -p /var/run/httpd' >> /root/run_apache.sh
+          RUN echo 'mkdir -p /var/lock/httpd' >> /root/run_apache.sh
+          RUN echo '/usr/sbin/httpd -D FOREGROUND' >> /root/run_apache.sh
+          RUN chmod 755 /root/run_apache.sh
+          EXPOSE 80
+          CMD /root/run_apache.sh
+          EOF
+          # Navigate to the app directory, build and run the Docker container
+          cd /home/ec2-user/app
+          docker build -t webinterface1 .
+          docker run -d -p 80:80 --restart unless-stopped webinterface1
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2']]
@@ -111,14 +145,26 @@ Resources:
   EC2InstancePrivateSubnet1:
     Type: AWS::EC2::Instance
     Properties:
+      IamInstanceProfile: !ImportValue
+        'PublicInstanceProfile1'
       ImageId: !FindInMap [OSAMI, !Ref OS3, AMI]
       InstanceType: t2.micro
+      KeyName: "SeanKeyPair"
       SubnetId: !ImportValue
         'PrivateSubnet1'
       SecurityGroupIds: 
         - !ImportValue 'PublicSecurityGroup'
       AvailabilityZone: !ImportValue
         'AvailabilityZone1'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          #Create the S3 bucket
+          aws s3 mb s3://private-interface-bucket-final-project
+          #create the file to upload to the S3
+          echo "Hello World" > /home/ec2-user/hello.txt
+          #upload the file to the S3 bucket
+          aws s3 cp /home/ec2-user/hello.txt s3://private-interface-bucket-final-project/hello.txt
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'OS3', 'PrivateSubnet1']]
