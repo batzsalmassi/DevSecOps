@@ -117,7 +117,7 @@ Resources:
     DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
+      DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
 
   #-----------------Associating the First Public Route Table with the Public Subnet-------------------
@@ -208,31 +208,14 @@ Resources:
 
   #-----------------Creating the Public Security Group-------------------
   PublicSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+    Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: 'Security group for HTTP, ICMP, SSH, TCP'
       VpcId: !Ref VPC
+      GroupDescription: Enable HTTP and SSH access
+      GroupName: Allow All
       SecurityGroupIngress:
-          # Allows traffic from within your VPC
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: '10.0.0.0/16'
-          # Allows ICMP from within your VPC
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          CidrIp: '10.0.0.0/16'
-          # Allows SSH only from your laptop
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: '199.203.9.228/32'
-          # Allows SSH only from your VPC
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: '10.0.0.0/16'
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: -1
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-PublicSecurityGroup
@@ -300,3 +283,5 @@ Outputs:
   AvailabilityZone2: #output the availability zone 2
     Description: Availability Zone 2
     Value: !Select [1, !GetAZs ""]
+    Export:
+      Name: AvailabilityZone2
