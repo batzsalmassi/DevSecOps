@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  OS1:
+    Type: String
+    Description: Choose the OS for the Instance.
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+  OS2:
+    Type: String
+    Description: Choose the OS for the Instance.
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+  OS3:
+    Type: String
+    Description: Choose the OS for the Instance.
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+Mappings:
+  OSAMI:
+    Ubuntu:
+      AMI: ami-080e1f13689e07408
+    AmazonLinux:
+      AMI: ami-04e5276ebb8451442
+    Windows:
+      AMI: ami-0f496107db66676ff
+    Red-Hat:
+      AMI: ami-0fe630eb857a6ec83
+
+Resources:
+  EC2InstancePublicSucbet1:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !ImportValue
+        'PublicInstanceProfile1'
+      ImageId: !FindInMap [OSAMI, !Ref OS1, AMI]
+      InstanceType: t2.micro
+      SubnetId: !ImportValue
+        'PublicSubnet1'
+      SecurityGroupIds: 
+        - !ImportValue 'PublicSecurityGroup'
+      AvailabilityZone: !ImportValue
+        'AvailabilityZone1'
+      KeyName: "SeanKeyPair"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          amazon-linux-extras install -y awscli
+          systemctl start docker
+          systemctl enable docker
+          sudo usermod -aG docker ec2-user
+          # Set up directory structure
+          mkdir -p /home/ec2-user/app/html
+          # Download files into the proper directory
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/architecture-diagram.png /home/ec2-user/app/html/architecture-diagram.png
+          # Create Dockerfile
+          cat <<'EOF' > /home/ec2-user/app/Dockerfile
+          FROM public.ecr.aws/amazonlinux/amazonlinux:latest
+          RUN yum update -y && yum install -y httpd
+          COPY html/index.html /var/www/html/index.html
+          COPY html/architecture-diagram.png /var/www/html/architecture-diagram.png
+          RUN echo 'mkdir -p /var/run/httpd' >> /root/run_apache.sh
+          RUN echo 'mkdir -p /var/lock/httpd' >> /root/run_apache.sh
+          RUN echo '/usr/sbin/httpd -D FOREGROUND' >> /root/run_apache.sh
+          RUN chmod 755 /root/run_apache.sh
+          EXPOSE 80
+          CMD /root/run_apache.sh
+          EOF
+          # Navigate to the app directory, build and run the Docker container
+          cd /home/ec2-user/app
+          docker build -t webinterface1 .
+          docker run -d -p 80:80 --restart unless-stopped webinterface1
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'OS1', 'PublicSubnet1']]
+  
+  EC2InstancePublicSucbet2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [OSAMI, !Ref OS2, AMI]
+      InstanceType: t2.micro
+      SubnetId: !ImportValue
+        'PublicSubnet2'
+      SecurityGroupIds: 
+        - !ImportValue 'PublicSecurityGroup'
+      AvailabilityZone: !ImportValue
+        'AvailabilityZone2'
+      KeyName: "SeanKeyPair"
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2']]
+        
+  EC2InstancePrivateSubnet1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [OSAMI, !Ref OS3, AMI]
+      InstanceType: t2.micro
+      SubnetId: !ImportValue
+        'PrivateSubnet1'
+      SecurityGroupIds: 
+        - !ImportValue 'PublicSecurityGroup'
+      AvailabilityZone: !ImportValue
+        'AvailabilityZone1'
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'OS3', 'PrivateSubnet1']]
+
