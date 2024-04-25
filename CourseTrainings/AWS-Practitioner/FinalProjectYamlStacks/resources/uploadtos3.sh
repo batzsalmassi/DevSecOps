@@ -8,6 +8,7 @@ cf_template_path="/Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitione
 # Upload files to S3
 aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacks/resources/index.html s3://${bucket_name}/index.html
 aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacks/resources/architecture-diagram.png s3://${bucket_name}/architecture-diagram.png
+aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacks/resources/webpage2 s3://${bucket_name}/webpage2 --recursive
 
 # Deploy the CloudFormation stack
 aws cloudformation deploy \
