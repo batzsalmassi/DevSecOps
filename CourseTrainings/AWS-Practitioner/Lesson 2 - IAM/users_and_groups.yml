@@ -8,7 +8,7 @@ Parameters:
 
   User2Name:
     Type: String
-    Description: "Enter the name for User 2. It must only contain numbers."
+    Description: "Enter th e name for User 2. It must only contain numbers."
     AllowedPattern: '[0-9]+'
 
   User3Name:
