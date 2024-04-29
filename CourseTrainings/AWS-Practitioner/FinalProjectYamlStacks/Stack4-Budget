@@ -33,21 +33,21 @@ Resources:
         - Notification:
             NotificationType: ACTUAL
             ComparisonOperator: GREATER_THAN
-            Threshold: 9
+            Threshold: 90
           Subscribers:
             - SubscriptionType: EMAIL
               Address: !Ref EmailAddress
         - Notification:
             NotificationType: ACTUAL
             ComparisonOperator: GREATER_THAN
-            Threshold: 7.5
+            Threshold: 75
           Subscribers:
           - SubscriptionType: EMAIL
             Address: !Ref EmailAddress
         - Notification:
             NotificationType: ACTUAL
             ComparisonOperator: GREATER_THAN
-            Threshold: 5
+            Threshold: 50
           Subscribers:
           - SubscriptionType: EMAIL
             Address: !Ref EmailAddress
