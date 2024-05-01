@@ -83,8 +83,8 @@ Resources:
           # Set up directory structure
           mkdir -p /home/ec2-user/app/html
           # Download files into the proper directory
-          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/index.html /home/ec2-user/app/html/index.html
-          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/architecture-diagram.png /home/ec2-user/app/html/architecture-diagram.png
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/architecture-diagram.png /home/ec2-user/app/html/architecture-diagram.png
           # Create Dockerfile
           cat <<'EOF' > /home/ec2-user/app/Dockerfile
           FROM public.ecr.aws/amazonlinux/amazonlinux:latest
@@ -231,8 +231,8 @@ Resources:
           # Set up directory structure
           mkdir -p /home/ec2-user/app/html/css
           # Download files into the proper directory
-          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/webpage2/index.html /home/ec2-user/app/html/index.html
-          aws s3 cp s3://web-interface-bucket-test-sean-salmassi/webpage2/css/styles.css /home/ec2-user/app/html/css
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/webpage2/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/webpage2/css/styles.css /home/ec2-user/app/html/css
           # Create Dockerfile
           cat <<'EOF' > /home/ec2-user/app/Dockerfile
           FROM public.ecr.aws/amazonlinux/amazonlinux:latest
