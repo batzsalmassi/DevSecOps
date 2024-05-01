@@ -2,7 +2,7 @@
 
 # Variables
 bucket_name="web-interface-bucket-test-sean-salmassi-v2"
-cf_ec2_name="FinalProject-EC2"
+cf_ec2_name="Stack3-EC2-ALB-ASG"
 cf_ec2_template_path="/Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/Stack3-EC2-ALB-ASG"
 
 # Upload files to S3

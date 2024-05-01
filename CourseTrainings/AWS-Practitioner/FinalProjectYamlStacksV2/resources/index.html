@@ -25,7 +25,7 @@
             max-width: 100%;
             height: auto;
         }
-        .description {
+        .description, .ip-address {
             text-align: left;
             margin-top: 20px;
         }
@@ -38,6 +38,13 @@
         <p class="description">
             This diagram represents the architecture of my final project. It consists of several AWS services including EC2, S3, RDS, and Lambda functions to create a scalable and resilient web application.
         </p>
+        <p class="ip-address" id="ipAddress">Loading IP...</p>
     </div>
+    <script>
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => document.getElementById('ipAddress').textContent = 'This page is served from IP: ' + data.ip)
+            .catch(error => document.getElementById('ipAddress').textContent = 'IP address not found');
+    </script>
 </body>
 </html>
