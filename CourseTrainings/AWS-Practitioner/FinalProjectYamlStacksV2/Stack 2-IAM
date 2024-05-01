@@ -1,0 +1,217 @@
+AWSTemplateFormatVersion: '2010-09-09'
+#---------------------- Inputs of the data for the creation of all the other resources. ----------------------
+Parameters:
+  User1:
+    Type: String
+    Description: "The name of the S3 Admin user" 
+    MinLength: 1
+    AllowedPattern: "[a-zA-Z0-9]+"
+#------------------------------- Hard Password for the S3 Admin user without the need for change after the first login --------------
+  User1Pass:
+    Type: String
+    Description: "The password for the S3 Admin user"
+    MinLength: 10
+    AllowedPattern: "^(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]+$"
+    NoEcho: true
+
+  User2:
+    Type: String
+    Description: "The name of the EC2 Admin user"
+    MinLength: 1
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  #------------------------------- Simple Password for the EC2 Admin user That will need to be change after first login --------------
+  User2Pass:
+    Type: String
+    Description: "Enter a password that must be changed after the first login. It should be at least 8 characters long, include uppercase and lowercase letters, numbers, and special characters."
+    MinLength: 8
+    AllowedPattern: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$
+    NoEcho: true
+
+  User3:
+    Type: String
+    Description: "Enter the name for User 3. It should contain a valid email address within the @devsecops.bar domain."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@devsecops\.bar$'
+    MinLength: 1
+
+  Group1:
+    Type: String
+    Description: "The name of the S3 Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  Group2:
+    Type: String
+    Description: "The name of the EC2 Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+  Group3:
+    Type: String
+    Description: "The name of the Global Admins Group"
+    AllowedPattern: "[a-zA-Z0-9]+"
+
+Resources:
+  #---------------------- Creation of the S3 Admins Group ----------------------
+  S3AdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group1
+      Policies:
+        - PolicyName: S3AdminPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+
+#---------------------- Creation of the EC2 Admins Group ----------------------
+  EC2AdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group2
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEC2FullAccess'
+
+  #---------------------- Creation of the Global Admins Group ----------------------
+  GlobalAdminsGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref Group3
+      Policies:
+        - PolicyName: GlobalAdminPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+
+  #---------------------- Creation of the S3 Admin User ----------------------
+  S3AdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User1
+      Groups:
+        - !Ref S3AdminsGroup
+      LoginProfile:
+        Password: !Ref User1Pass
+        PasswordResetRequired: false
+
+  #---------------------- Creation of the EC2 Admin User ----------------------
+  EC2AdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User2
+      Groups:
+        - !Ref EC2AdminsGroup
+      LoginProfile:
+        Password: !Ref User2Pass
+        PasswordResetRequired: false
+    
+  #---------------------- Creation of the Global Admin User ----------------------
+  GlobalAdminUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Ref User3
+      Groups:
+        - !Ref GlobalAdminsGroup
+      LoginProfile:
+        Password: 'TempPa$$w0rdDevSecOps'
+        PasswordResetRequired: true
+
+  #---------------------- Creation of IAM Role for assume role for EC2 ----------------------
+  PublicInstance1Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - ec2.amazonaws.com
+            Action: 
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: DockerAutomator
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                  - 'cloudwatch:*'
+                  - 'logs:*'
+                  - 's3:*'
+                Resource: '*'
+
+  #---------------------- Create Instance Profile for EC2 ----------------------
+  PublicInstanceProfile1:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref PublicInstance1Role
+
+  webBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "web-interface-bucket-test-sean-salmassi"
+
+Outputs:
+  #---------------------- Outputs of the data for the creation of all the other resources. ----------------------
+  S3AdminUser:
+    Description: "The name of the S3 Admin user"
+    Value: !Ref User1
+    Export:
+      Name: !Sub "S3AdminUser"
+
+  EC2AdminUser:
+    Description: "The name of the EC2 Admin user"
+    Value: !Ref User2
+    Export:
+      Name: !Sub "EC2AdminUser"
+
+  GlobalAdminUser:
+    Description: "The name of the Global Admin user"
+    Value: !Ref User3
+    Export:
+      Name: !Sub "GlobalAdminUser"
+
+  S3AdminsGroup:
+    Description: "The name of the S3 Admins Group"
+    Value: !Ref Group1
+    Export:
+      Name: !Sub "S3AdminsGroup"
+
+  EC2AdminsGroup:
+    Description: "The name of the EC2 Admins Group"
+    Value: !Ref Group2
+    Export:
+      Name: !Sub "EC2AdminsGroup"
+
+  GlobalAdminsGroup:
+    Description: "The name of the Global Admins Group"
+    Value: !Ref Group3
+    Export:
+      Name: !Sub "GlobalAdminsGroup"
+
+  PublicInstance1Role:
+    Description: "The name of the IAM Role for assume role for EC2"
+    Value: !Ref PublicInstance1Role
+    Export:
+      Name: !Sub "PublicInstance1Role"
+
+  PublicInstanceProfile1:
+    Description: "The name of the Instance 1 Profile for EC2"
+    Value: !Ref PublicInstanceProfile1
+    Export:
+      Name: "PublicInstanceProfile1"
+
+  webBucket:
+    Description: "The name of the S3 bucket for the web interface"
+    Value: !Ref webBucket
+    Export: 
+      Name: "webBucket"
