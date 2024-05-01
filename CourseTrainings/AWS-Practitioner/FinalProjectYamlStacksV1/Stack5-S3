@@ -41,11 +41,11 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           #Create the S3 bucket
-          aws s3 mb s3://private-bucket-interface-sean-finalproject
+          aws s3 mb s3://private-bucket-interface-sean-finalproject-v1
           #create the file to upload to the S3
           echo "Hello World" > /home/ec2-user/hello.txt
           #upload the file to the S3 bucket
-          aws s3 cp /home/ec2-user/hello.txt s3://private-bucket-interface-sean-finalproject/hello.txt
+          aws s3 cp /home/ec2-user/hello.txt s3://private-bucket-interface-sean-finalproject-v1/hello.txt
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'OS3', 'PrivateSubnet1', !Ref 'AWS::StackName']]

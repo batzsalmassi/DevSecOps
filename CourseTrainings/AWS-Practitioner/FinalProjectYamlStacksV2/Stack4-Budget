@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  BudgetAmount:
+    Type: Number
+    Default: 10
+    Description: The budget amount for the AWS Budgets
+
+  EmailAddress:
+    Type: String
+    Description: The email address to send the budget notifications to
+
+Description: "Basic Budget test"
+Resources:
+  MonthlyBudget:
+    Type: "AWS::Budgets::Budget"
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: !Ref BudgetAmount
+          Unit: USD
+        TimeUnit: MONTHLY
+        TimePeriod:
+          Start: 1225864800
+          End: 1926864800
+        BudgetType: COST
+        CostFilters:
+          AZ:
+            - us-east-1
+            - us-west-1
+            - us-east-2
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 90
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref EmailAddress
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 75
+          Subscribers:
+          - SubscriptionType: EMAIL
+            Address: !Ref EmailAddress
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 50
+          Subscribers:
+          - SubscriptionType: EMAIL
+            Address: !Ref EmailAddress
+Outputs:
+  BudgetId:
+    Value: !Ref MonthlyBudget
+    Export:
+      Name: !Sub "${AWS::StackName}-BudgetId"

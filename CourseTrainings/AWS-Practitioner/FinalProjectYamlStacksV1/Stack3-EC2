@@ -141,31 +141,4 @@ Resources:
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2', !Ref 'AWS::StackName']]
-        
-  #EC2InstancePrivateSubnet1:
-    #Type: AWS::EC2::Instance
-    #Properties:
-      #IamInstanceProfile: !ImportValue
-        #'PublicInstanceProfile1'
-      #ImageId: !FindInMap [OSAMI, !Ref OS3, AMI]
-      #InstanceType: t2.micro
-      #KeyName: "SeanKeyPair"
-      #SubnetId: !ImportValue
-        #'PrivateSubnet1'
-      #SecurityGroupIds: 
-        #- !ImportValue 'PublicSecurityGroup'
-      #AvailabilityZone: !ImportValue
-        #'AvailabilityZone1'
-      #UserData:
-        #Fn::Base64: !Sub |
-          ##!/bin/bash
-          ##Create the S3 bucket
-          #aws s3 mb s3://private-interface-bucket-final-project
-          ##create the file to upload to the S3
-          #echo "Hello World" > /home/ec2-user/hello.txt
-          ##upload the file to the S3 bucket
-          #aws s3 cp /home/ec2-user/hello.txt s3://private-interface-bucket-final-project/hello.txt
-      #Tags:
-        #- Key: Name
-          #Value: !Join ['-', [!Ref 'OS3', 'PrivateSubnet1']]
 

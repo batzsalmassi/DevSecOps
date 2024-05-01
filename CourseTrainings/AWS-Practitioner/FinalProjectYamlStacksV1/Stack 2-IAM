@@ -158,7 +158,7 @@ Resources:
   webBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: "web-interface-bucket-test-sean-salmassi"
+      BucketName: "web-interface-bucket-test-sean-salmassi-v1"
 
 Outputs:
   #---------------------- Outputs of the data for the creation of all the other resources. ----------------------

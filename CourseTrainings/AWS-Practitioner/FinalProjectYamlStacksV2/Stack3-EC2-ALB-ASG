@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  OS1:
+    Type: String
+    Description: Choose AmazonLinux for the correct UserData script
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+  OS2:
+    Type: String
+    Description: Choose AmazonLinux for the correct UserData script
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+Mappings:
+  OSAMI:
+    Ubuntu:
+      AMI: ami-080e1f13689e07408
+    AmazonLinux:
+      AMI: ami-04e5276ebb8451442
+    Windows:
+      AMI: ami-0f496107db66676ff
+    Red-Hat:
+      AMI: ami-0fe630eb857a6ec83
+
+Resources:
+
+ #________ Load Balancer _________#
+  # Application Load Balancer Resources
+  # ----------------------------------- #
+  # This template creates an Application Load Balancer (ALB)
+  # and attaches it to a Target Group containing a pair of
+  # EC2 instances. The ALB listens on port 80 and forwards incoming
+  # traffic to the Target Group.
+  # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ #
+  
+  # create Load balanser security group
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup # Create a Security Group
+    Properties:
+      GroupDescription: LoadBalancer SG # Description of the Security Group
+      VpcId: !ImportValue 'VPCId' # Import the VPC ID
+      SecurityGroupIngress: # Define the Ingress rules
+        - IpProtocol: tcp 
+          FromPort: 80 # Allow traffic from port 80
+          ToPort: 80 # Allow traffic to port 80
+          CidrIp: 0.0.0.0/0 # Allow traffic from any IP address
+        - IpProtocol: tcp 
+          FromPort: 22 # Allow traffic from port 22
+          ToPort: 22 # Allow traffic to port 22
+          CidrIp: 0.0.0.0/0
+
+# Create a Launch Configuration for the EC2 instances with UserData script for configuration
+  WebServerTemplate:
+    Type: AWS::AutoScaling::LaunchConfiguration # Create a Launch Configuration
+    Properties:
+      IamInstanceProfile: !ImportValue 'PublicInstanceProfile1' # Importing the IAM Role for the EC2 instances
+      ImageId: ami-07caf09b362be10b8  # Specify the correct AMI for your region
+      InstanceType: t2.micro  # Free tier eligible instance type
+      KeyName: "SeanKeyPair"  # Ensure 'SeanKeyPair' is defined in Parameters or passed as an input
+      SecurityGroups:
+        - !ImportValue 'PublicSecurityGroup'  # Attach to this security group
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          amazon-linux-extras install -y awscli
+          systemctl start docker
+          systemctl enable docker
+          yum install -y epel-release
+          yum install stress -y
+          usermod -aG docker ec2-user
+          # Set up directory structure
+          mkdir -p /home/ec2-user/app/html
+          # Download files into the proper directory
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/architecture-diagram.png /home/ec2-user/app/html/architecture-diagram.png
+          # Create Dockerfile
+          cat <<'EOF' > /home/ec2-user/app/Dockerfile
+          FROM public.ecr.aws/amazonlinux/amazonlinux:latest
+          RUN yum update -y && yum install -y httpd
+          COPY html/index.html /var/www/html/index.html
+          COPY html/architecture-diagram.png /var/www/html/architecture-diagram.png
+          RUN echo 'mkdir -p /var/run/httpd' >> /root/run_apache.sh
+          RUN echo 'mkdir -p /var/lock/httpd' >> /root/run_apache.sh
+          RUN echo '/usr/sbin/httpd -D FOREGROUND' >> /root/run_apache.sh
+          RUN chmod 755 /root/run_apache.sh
+          EXPOSE 80
+          CMD /root/run_apache.sh
+          EOF
+          # Navigate to the app directory, build and run the Docker container
+          cd /home/ec2-user/app
+          docker build -t webinterface1 .
+          docker run -d -p 80:80 --restart unless-stopped webinterface1
+
+
+  # Create an Application Load Balancer
+  WebServerALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer # Create an Application Load Balancer
+    Properties:
+      Name: WebServerALB # Name of the Load Balancer
+      Scheme: internet-facing # Make the Load Balancer Accessible publicly
+      Subnets: # Attach the Load Balancer to the Public Subnets
+        - !ImportValue 'PublicSubnet1'
+        - !ImportValue 'PublicSubnet2'
+      SecurityGroups: # Attach the Load Balancer to the Security Group
+        - !Ref WebServerSecurityGroup
+
+#Web Server Target Group for the Load Balancer to forward traffic to the EC2 instances
+  WebServerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup # Create a Target Group
+    Properties:
+      HealthCheckPath: /  # Use the root URL for health checks
+      Name: WebServerTargetGroup # Name of the Target Group
+      Port: 80 # Forward traffic on port 80
+      Protocol: HTTP # Use HTTP protocol
+      TargetType: instance # Forward traffic to EC2 instances
+      VpcId: !ImportValue 'VPCId' # Import the VPC ID
+
+#Web Server Listener for port 80 to forward traffic to the Target Group
+  WebServerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener # Create a Listener
+    Properties:
+      LoadBalancerArn: !Ref WebServerALB # Attach the Listener to the Load Balancer
+      Port: 80 # Listen on port 80
+      Protocol: HTTP # Use HTTP protocol
+      DefaultActions: # Forward traffic to the Target Group
+        - Type: forward # Forward the traffic
+          TargetGroupArn: !Ref WebServerTargetGroup # Forward to this Target Group
+
+
+  # Auto Scaling Group Resources
+  # ----------------------------------- #
+  # This template creates an Auto Scaling Group (ASG) that will
+  # launch and terminate EC2 instances based on CPU utilization.
+  # The ASG will launch at least 2 instances and at most 4
+  # instances, and will add or remove instances as needed to keep
+  # CPU utilization at 50%.
+#Web Server Auto Scaling Group
+  WebServerAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup # Create an Auto Scaling Group
+    Properties:
+      DesiredCapacity: 2 # Start with 2 instances
+      VPCZoneIdentifier: # Attach the instances to the Public Subnets
+        - !ImportValue 'PublicSubnet1'
+        - !ImportValue 'PublicSubnet2'
+      LaunchConfigurationName: !Ref WebServerTemplate  # Refer to the LaunchConfiguration resource
+      MaxSize: 4 # Maximum of 4 instances
+      MinSize: 1 # Minimum of 1 instance
+      TargetGroupARNs: # Attach the instances to the Target Group
+        - !Ref WebServerTargetGroup
+      Tags:
+        - Key: Name
+          Value: WebServerInstance
+          PropagateAtLaunch: true
+
+
+# Web Server CPU Auto Scaling Policy
+  WebServerCPUAutoScalingPolicy: 
+    Type: AWS::AutoScaling::ScalingPolicy # Create a Scaling Policy
+    Properties:
+      AutoScalingGroupName: !Ref WebServerAutoScalingGroup # reference the ASG
+      PolicyType: TargetTrackingScaling # use target tracking scaling policy
+      TargetTrackingConfiguration: # configure the target tracking policy
+        PredefinedMetricSpecification: # use predefined metric for CPU utilization
+          PredefinedMetricType: ASGAverageCPUUtilization # use average CPU utilization
+        TargetValue: 40 # target 40% CPU utilization
+  
+  # Web Server CPU Alarm
+  WebServerASGCPUAlarm: 
+    Type: AWS::CloudWatch::Alarm # Create a CloudWatch Alarm
+    Properties:
+      AlarmDescription: "Alarm monitoring CPU utilization on EC2 instances" # Description of the alarm
+      Namespace: AWS/EC2  # Monitor CPU utilization of EC2 instances
+      MetricName: CPUUtilization # Use CPU utilization metric
+      Dimensions: # Specify the dimensions to monitor
+        - Name: AutoScalingGroupName 
+          Value: !Ref WebServerAutoScalingGroup  # Monitor the instances in this ASG
+      Statistic: Average # Use average CPU utilization
+      Period: 60  # Check CPU utilization every 1 minutes
+      EvaluationPeriods: 2  # Check utilization for at least 2 periods
+      Threshold: 40  # If utilization is above 40%, trigger the alarm
+      ComparisonOperator: GreaterThanThreshold  # Trigger the alarm if above threshold
+      AlarmActions:
+        - !Ref WebServerCPUAutoScalingPolicy  # When the alarm triggers, scale the ASG
+
+ # Add Access to load balancer for the public SG
+  MySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress # Add Ingress rule to the Security Group
+    Properties:
+      GroupId: !ImportValue 'PublicSecurityGroup' # Import the Security Group ID
+      IpProtocol: "tcp" # Use TCP protocol
+      FromPort: 80 # Allow traffic from port 80
+      ToPort: 80 #  Allow traffic to port 80
+      SourceSecurityGroupId: !GetAtt WebServerSecurityGroup.GroupId # Replace with the ID of the source security group
+  
+  # EC2 Instance Resources on Public Subnet 2 to host the web interface application that will be exported as ami manually.
+  EC2InstancePrivateSubnet2:
+    Type: AWS::EC2::Instance # Create an EC2 Instance
+    Properties:
+      IamInstanceProfile: !ImportValue # Import the IAM Role for the EC2 instances
+        'PublicInstanceProfile1'
+      ImageId: !FindInMap [OSAMI, !Ref OS2, AMI] # Specify the correct AMI for your region
+      InstanceType: t2.micro # Free tier eligible instance type
+      SubnetId: !ImportValue # Import the Subnet ID for the instance
+        'PublicSubnet2'
+      SecurityGroupIds:  # Attach to this security group
+        - !ImportValue 'PublicSecurityGroup'
+      AvailabilityZone: !ImportValue # Import the Availability Zone for the instance
+        'AvailabilityZone2'
+      KeyName: "SeanKeyPair" # Ensure 'SeanKeyPair' is defined in Parameters or passed as an input
+      UserData: # Use UserData to run commands on the instance
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          amazon-linux-extras install -y awscli
+          systemctl start docker
+          systemctl enable docker
+          sudo usermod -aG docker ec2-user
+          # Set up directory structure
+          mkdir -p /home/ec2-user/app/html/css
+          # Download files into the proper directory
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/webpage2/index.html /home/ec2-user/app/html/index.html
+          aws s3 cp s3://web-interface-bucket-test-sean-salmassi-v2/webpage2/css/styles.css /home/ec2-user/app/html/css
+          # Create Dockerfile
+          cat <<'EOF' > /home/ec2-user/app/Dockerfile
+          FROM public.ecr.aws/amazonlinux/amazonlinux:latest
+          RUN yum update -y && yum install -y httpd
+          Run mkdir -p /var/www/html/css
+          COPY html/index.html /var/www/html/index.html
+          COPY html/css/styles.css /var/www/html/css/styles.css
+          RUN echo 'mkdir -p /var/run/httpd' >> /root/run_apache.sh
+          RUN echo 'mkdir -p /var/lock/httpd' >> /root/run_apache.sh
+          RUN echo '/usr/sbin/httpd -D FOREGROUND' >> /root/run_apache.sh
+          RUN chmod 755 /root/run_apache.sh
+          EXPOSE 80
+          CMD /root/run_apache.sh
+          EOF
+          # Navigate to the app directory, build and run the Docker container
+          cd /home/ec2-user/app
+          docker build -t webinterface1 .
+          docker run -d -p 80:80 --restart unless-stopped webinterface1
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2', !Ref 'AWS::StackName']]
+

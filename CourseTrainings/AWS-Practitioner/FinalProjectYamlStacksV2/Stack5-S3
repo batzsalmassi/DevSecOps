@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  OS3:
+    Type: String
+    Description: Choose AmazonLinux for the correct UserData script
+    Default: AmazonLinux
+    AllowedValues:
+      - Ubuntu
+      - AmazonLinux
+      - Windows
+      - Red-Hat
+
+Mappings:
+  OSAMI:
+    Ubuntu:
+      AMI: ami-080e1f13689e07408
+    AmazonLinux:
+      AMI: ami-04e5276ebb8451442
+    Windows:
+      AMI: ami-0f496107db66676ff
+    Red-Hat:
+      AMI: ami-0fe630eb857a6ec83
+
+Resources:
+  EC2InstancePrivateSubnet1:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !ImportValue
+        'PublicInstanceProfile1'
+      
+      ImageId: !FindInMap [OSAMI, !Ref OS3, AMI]
+      InstanceType: t2.micro
+      KeyName: "SeanKeyPair"
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false # Make it in a private subnet
+          DeviceIndex: 0 # Use integer for DeviceIndex, without quotes
+          GroupSet:
+            - !ImportValue 'PrivateSubnetSecurityGroup' # Ensure the Security Group is accessible
+          SubnetId: !ImportValue 'PrivateSubnet1' # Ensure the Subnet ID is accessible and correct
+      AvailabilityZone: !ImportValue
+        'AvailabilityZone1'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          #Create the S3 bucket
+          aws s3 mb s3://private-bucket-interface-sean-finalproject-v2
+          #create the file to upload to the S3
+          echo "Hello World" > /home/ec2-user/hello.txt
+          #upload the file to the S3 bucket
+          aws s3 cp /home/ec2-user/hello.txt s3://private-bucket-interface-sean-finalproject-v2/hello.txt
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'OS3', 'PrivateSubnet1', !Ref 'AWS::StackName']]
