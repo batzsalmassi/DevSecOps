@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Variables
+# Variables Stack #EC2
 bucket_name="web-interface-bucket-test-sean-salmassi-v2"
 cf_ec2_name="Stack3-EC2-ALB-ASG"
 cf_ec2_template_path="/Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/Stack3-EC2-ALB-ASG"
@@ -20,8 +20,21 @@ aws cloudformation deploy \
 
 echo "Deployment triggered..."
 
+# Variables Stack #PrivateInstanceS3
 cf_s3_name="FinalProject-S3"
 cf_s3_template_path="/Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/Stack5-S3"
+# Deploy the S3 Cloudformation Stack
+aws cloudformation deploy \
+    --template-file ${cf_s3_template_path} \
+    --stack-name ${cf_s3_name} \
+    --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+    --no-fail-on-empty-changeset
+
+echo "Deployment triggered..."
+
+# Variables Stack #Budget
+cf_s3_name="FinalProject-Budget"
+cf_s3_template_path="/Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/Stack4-Budget"
 # Deploy the S3 Cloudformation Stack
 aws cloudformation deploy \
     --template-file ${cf_s3_template_path} \
