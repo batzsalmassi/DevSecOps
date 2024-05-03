@@ -35,14 +35,8 @@ Mappings:
 Resources:
 
  #________ Load Balancer _________#
-  # Application Load Balancer Resources
+  # Application Load Balancer Resources 
   # ----------------------------------- #
-  # This template creates an Application Load Balancer (ALB)
-  # and attaches it to a Target Group containing a pair of
-  # EC2 instances. The ALB listens on port 80 and forwards incoming
-  # traffic to the Target Group.
-  # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ #
-  
   # create Load balanser security group
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup # Create a Security Group
@@ -104,7 +98,7 @@ Resources:
           docker run -d -p 80:80 --restart unless-stopped webinterface1
 
 
-  # Create an Application Load Balancer
+  #Create an Application Load Balancer with a Target Group and Listener on port 80 to forward traffic to the EC2 instances.
   WebServerALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer # Create an Application Load Balancer
     Properties:
@@ -139,7 +133,7 @@ Resources:
           TargetGroupArn: !Ref WebServerTargetGroup # Forward to this Target Group
 
 
-  # Auto Scaling Group Resources
+  # Auto Scaling Group Resources 
   # ----------------------------------- #
   # This template creates an Auto Scaling Group (ASG) that will
   # launch and terminate EC2 instances based on CPU utilization.
