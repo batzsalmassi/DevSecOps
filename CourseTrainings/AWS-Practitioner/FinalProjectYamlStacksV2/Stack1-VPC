@@ -205,9 +205,6 @@ Resources:
       VpcId: !Ref VPC
       RouteTableIds: 
         - !Ref PrivateRouteTable
-      Tags: 
-        - Key: Name
-          Value: S3GatewayEndpoint
 
   EC2ConnectEndpoint:
     Type: AWS::EC2::InstanceConnectEndpoint
