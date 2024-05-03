@@ -9,6 +9,7 @@ Parameters:
   EmailAddress:
     Type: String
     Description: The email address to send the budget notifications to
+    Default: sean.salmassi1@gmail.com
 
 Description: "Basic Budget test"
 Resources:
