@@ -1,0 +1,10 @@
+## Run the bash script that deploying VPC, EC2-ALB-ASG, S3, Budget stacks
+./automate-stack.sh
+
+## Run the image_screation bash script that stopping the ec2 instance and creating a Golden Docker AMI.
+ami_id=$(./image_creation.sh)                                                                   
+echo "Captured AMI ID: $ami_id"
+
+
+## Run the private_instance_from_image bash script that creating the new instance from the Golden Docker AMI in the private subnet 2.
+./private_instance_from_image.sh $ami_id

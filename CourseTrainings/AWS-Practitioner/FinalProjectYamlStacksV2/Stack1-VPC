@@ -205,6 +205,20 @@ Resources:
       VpcId: !Ref VPC
       RouteTableIds: 
         - !Ref PrivateRouteTable
+      Tags: 
+        - Key: Name
+          Value: S3GatewayEndpoint
+
+  EC2ConnectEndpoint:
+    Type: AWS::EC2::InstanceConnectEndpoint
+    Properties:
+      PreserveClientIp: false  # Set to true to preserve the client's IP address when establishing an instance connection
+      SecurityGroupIds: 
+        - !GetAtt PrivateSubnetSecurityGroup.GroupId  # Replace with your security group ID(s)
+      SubnetId: !Ref PrivateSubnet2  # Only one subnet ID is allowed per instance connect endpoint
+      Tags: 
+        - Key: Name
+          Value: EC2ConnectEndpoint
 
 #--------------------Outputs-------------------
 Outputs:
@@ -261,3 +275,15 @@ Outputs:
     Value: !Select [1, !GetAZs ""]
     Export:
       Name: AvailabilityZone2
+
+  S3Endpoint: #output the S3 endpoint
+    Description: S3 Endpoint
+    Value: !Ref S3Endpoint
+    Export:
+      Name: S3GatewayEndpoint
+
+  MyInstanceConnectEndpoint: #output the instance connect endpoint
+    Description: Instance Connect Endpoint
+    Value: !Ref EC2ConnectEndpoint
+    Export:
+      Name: EC2ConnectEndpoint

@@ -253,7 +253,7 @@ Resources:
           docker run -d -p 80:80 --restart unless-stopped webinterface1
       Tags:
         - Key: Name
-          Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2', !Ref 'AWS::StackName']]
+          Value: !Join ['-', [!Ref 'OS2', 'PublicSubnet2', 'GoldenDockerAMI']]
 
 Outputs:
   EC2PublicSubnet2:
