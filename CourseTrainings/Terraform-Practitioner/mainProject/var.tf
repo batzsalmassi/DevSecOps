@@ -1,14 +1,17 @@
 variable "aws_ACCESS_KEY" {}
 variable "aws_SECRET_KEY" {}
-variable "instanceName" {
-    type = string
-    description = "The name of the instance"
-}
-
 
 variable "region" {
     type = string
     description = "The region for the instance"
+}
+variable "vpc_cidr_block" {
+  description = "The CIDR block for the VPC"
+  type        = string
+}
+variable "instanceName" {
+    type = string
+    description = "The name of the instance"
 }
 
 variable "os" {
