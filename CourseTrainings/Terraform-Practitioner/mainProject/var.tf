@@ -1,5 +1,4 @@
-variable "aws_ACCESS_KEY" {}
-variable "aws_SECRET_KEY" {}
+
 
 variable "region" {
     type = string
