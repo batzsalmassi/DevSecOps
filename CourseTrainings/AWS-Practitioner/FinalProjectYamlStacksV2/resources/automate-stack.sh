@@ -3,9 +3,9 @@
 #Variable for the bucket name
 bucket_name="web-interface-bucket-test-sean-salmassi-v2"
 # Upload files to S3
-aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/index.html s3://${bucket_name}/index.html
-aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/architecture-diagram.png s3://${bucket_name}/architecture-diagram.png
-aws s3 cp /Users/sean.salmassi/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/webpage2 s3://${bucket_name}/webpage2 --recursive
+aws s3 cp /Users/sean.salmassi/github-Repos/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/index.html s3://${bucket_name}/index.html
+aws s3 cp /Users/sean.salmassi/github-Repos/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/architecture-diagram.png s3://${bucket_name}/architecture-diagram.png
+aws s3 cp /Users/sean.salmassi/github-Repos/DevSecOps/CourseTrainings/AWS-Practitioner/FinalProjectYamlStacksV2/resources/webpage2 s3://${bucket_name}/webpage2 --recursive
 
 # Variables Stack #VPC
 cf_s3_name="FinalProject-VPC"
